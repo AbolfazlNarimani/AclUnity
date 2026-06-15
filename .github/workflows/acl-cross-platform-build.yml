@@ -1,7 +1,6 @@
 name: acl-cross-platform-build
 
 on:
-  workflow_dispatch: # Allows you to click "Run workflow" manually on GitHub
   push:
     branches:
       - '**'
@@ -17,38 +16,22 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: 'recursive'
-          
-      # Fixes the Android NDK dependency required by your CMake toolchain
-      - name: Setup Android NDK
-        id: setup-ndk
-        uses: nttld/setup-ndk@v1
-        with:
-          ndk-version: r26b # Adjust version if your project requires a specific NDK flavor
-
-      制造- name: Build linux x86 SSE2
+      - name: Build linux x86 SSE2
         run: |
           cmake -DCMAKE_BUILD_TYPE:STRING="RelWithDebInfo" -DCMAKE_C_COMPILER="clang-18" -DCMAKE_CXX_COMPILER="clang-18" -B "build_linux_sse2"
           cmake --build build_linux_sse2
-          
       - name: Build linux x86 AVX
         run: |
           cmake -DCMAKE_BUILD_TYPE:STRING="RelWithDebInfo" -DACLUNITY_IS_AVX:BOOL="True" -DCMAKE_C_COMPILER="clang-18" -DCMAKE_CXX_COMPILER="clang-18" -B "build_linux_avx"
           cmake --build build_linux_avx
-          
       - name: Build Android ARM64
         run: |
           cmake -DCMAKE_BUILD_TYPE:STRING="RelWithDebInfo" -DCMAKE_TOOLCHAIN_FILE="cmake/android-toolchain.cmake" -DCMAKE_ANDROID_ARCH_ABI="arm64-v8a" -B "build_android_arm64"
           cmake --build build_android_arm64
-        env:
-          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
-
       - name: Build Android ARM7
         run: |
           cmake -DCMAKE_BUILD_TYPE:STRING="RelWithDebInfo" -DCMAKE_TOOLCHAIN_FILE="cmake/android-toolchain.cmake" -DCMAKE_ANDROID_ARCH_ABI="armeabi-v7a" -B "build_android_arm7"
           cmake --build build_android_arm7
-        env:
-          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
-          
       - name: Upload linux artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -56,6 +39,8 @@ jobs:
           path: |
             ./build*/**/*.so*
             ./build*/**/*.s
+        env:
+          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
             
   windows:
     runs-on: windows-2022
